@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { S1FilingHTML } from "@/lib/s1-content";
 
 type Tab = "chat" | "filing";
@@ -13,43 +15,6 @@ const SUGGESTIONS = [
   { label: "Break down FY2025 revenue growth", hint: "§ MD&A" },
   { label: "Explain the dual-class voting structure", hint: "§ OFFERING" },
 ];
-
-const CANNED_REPLIES: Record<string, string> = {
-  risk: `Per § Risk Factors, the registrant flags four primary categories:
-1. Operational — vehicle anomalies, single-customer concentration (U.S. Government = 31% of FY2025 revenue), and dependence on Starlink spectrum & laser-link performance.
-2. Capital — continued capex intensity for Starship + Starlink V3; sustained profitability is recent (FY2024 onward).
-3. Regulatory — FAA / FCC / DoD / ITAR exposure; NEPA reviews at Boca Chica can compress launch cadence.
-4. Offering-specific — dual-class concentration (~78% voting control retained by insiders) and expected high price volatility.`,
-  proceeds: `Net proceeds estimated at ~$13.4B (midpoint $94.00/share). Allocation:
-• Starship vehicle & engine production — $5.2B (38.8%)
-• Starlink V3 constellation — $3.6B (26.9%)
-• Launch & ground infrastructure — $2.1B (15.7%)
-• Working capital — $1.8B (13.4%)
-• Repayment of 2027 senior secured notes — $0.7B (5.2%)`,
-  revenue: `FY2025 revenue: $21.8B, up 54% YoY from $14.2B in FY2024. Drivers:
-• Launch cadence expansion (187 successful orbital launches vs. 134 in FY2024)
-• Starlink subscribers grew to 4.6M across 102 markets
-• Adjusted gross margin expanded +720bps to 36.4%, reflecting Starship production maturity and improved utilization at Hawthorne / Roberts Road.
-• Operating cash flow turned positive across all four trailing quarters.`,
-  voting: `The Company is going public with a dual-class structure: Class A shares carry 1 vote each; Class B shares carry 10 votes each. The Class B shares are held by the founder and certain pre-IPO holders. Immediately after this offering, that group will retain ~78% of combined voting power, giving them effective control over board composition, M&A approvals, and amendments to the charter.`,
-};
-
-function mockReply(q: string): string {
-  const t = q.toLowerCase();
-  if (t.includes("risk")) return CANNED_REPLIES.risk;
-  if (t.includes("proceed") || t.includes("ipo proceeds") || t.includes("use of"))
-    return CANNED_REPLIES.proceeds;
-  if (t.includes("revenue") || t.includes("growth") || t.includes("md&a") || t.includes("financial"))
-    return CANNED_REPLIES.revenue;
-  if (t.includes("vot") || t.includes("dual") || t.includes("class"))
-    return CANNED_REPLIES.voting;
-  return `Acknowledged: "${q.slice(0, 96)}${q.length > 96 ? "…" : ""}"
-
-[ PROTOTYPE NOTICE ]
-The retrieval pipeline against the S-1 corpus is not yet wired to this chat. Once the backend is connected, queries will be grounded in the registration statement and cite their source paragraphs.
-
-For now, try one of the suggested prompts — those return canned answers sourced from the filing excerpt visible under the FILING tab.`;
-}
 
 function nowStamp() {
   const d = new Date();
@@ -66,6 +31,7 @@ export default function Page() {
   const [thinking, setThinking] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const previousResponseIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!scrollRef.current) return;
@@ -84,13 +50,38 @@ export default function Page() {
       { id: crypto.randomUUID(), role: "user", text: q, ts: nowStamp() },
     ]);
     setThinking(true);
-    await new Promise((r) => setTimeout(r, 900 + Math.random() * 700));
+
+    let reply: string;
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: q,
+          previousResponseId: previousResponseIdRef.current,
+        }),
+      });
+      const data = (await res.json()) as {
+        text?: string;
+        responseId?: string;
+        error?: string;
+      };
+      if (!res.ok) {
+        reply = `[ ERROR ] ${data.error ?? `Request failed (${res.status}).`}`;
+      } else {
+        reply = data.text?.trim() || "[ no content returned ]";
+        if (data.responseId) previousResponseIdRef.current = data.responseId;
+      }
+    } catch (err) {
+      reply = `[ ERROR ] ${err instanceof Error ? err.message : "Network error."}`;
+    }
+
     setMessages((m) => [
       ...m,
       {
         id: crypto.randomUUID(),
         role: "assistant",
-        text: mockReply(q),
+        text: reply,
         ts: nowStamp(),
       },
     ]);
@@ -114,11 +105,6 @@ export default function Page() {
               active={tab === "chat"}
               label="Chat"
               onClick={() => setTab("chat")}
-            />
-            <BigTab
-              active={tab === "filing"}
-              label="Filing"
-              onClick={() => setTab("filing")}
             />
           </div>
         </div>
@@ -338,9 +324,24 @@ function MessageRow({ m }: { m: Message }) {
   }
   return (
     <div className="fade-up">
-      <pre className="whitespace-pre-wrap font-body tracking-tight text-[14.5px] leading-[1.65] text-fg max-w-[80ch]">
-        {m.text}
-      </pre>
+      <AssistantMarkdown text={m.text} />
+    </div>
+  );
+}
+
+function AssistantMarkdown({ text }: { text: string }) {
+  return (
+    <div className="prose-chat font-body tracking-tight text-[14.5px] leading-[1.65] text-fg max-w-[80ch]">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          a: (props) => (
+            <a target="_blank" rel="noopener noreferrer" {...props} />
+          ),
+        }}
+      >
+        {text}
+      </ReactMarkdown>
     </div>
   );
 }
