@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { S1FilingHTML } from "@/lib/s1-content";
 
-type Tab = "console" | "filing";
-type Role = "user" | "oracle";
+type Tab = "chat" | "filing";
+type Role = "user" | "assistant";
 type Message = { id: string; role: Role; text: string; ts: string };
 
 const SUGGESTIONS = [
@@ -46,7 +46,7 @@ function mockReply(q: string): string {
   return `Acknowledged: "${q.slice(0, 96)}${q.length > 96 ? "…" : ""}"
 
 [ PROTOTYPE NOTICE ]
-The retrieval pipeline against the S-1 corpus is not yet wired to this console. Once the backend is connected, queries will be grounded in the registration statement and cite their source paragraphs.
+The retrieval pipeline against the S-1 corpus is not yet wired to this chat. Once the backend is connected, queries will be grounded in the registration statement and cite their source paragraphs.
 
 For now, try one of the suggested prompts — those return canned answers sourced from the filing excerpt visible under the FILING tab.`;
 }
@@ -60,7 +60,7 @@ function nowStamp() {
 }
 
 export default function Page() {
-  const [tab, setTab] = useState<Tab>("console");
+  const [tab, setTab] = useState<Tab>("chat");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
@@ -89,7 +89,7 @@ export default function Page() {
       ...m,
       {
         id: crypto.randomUUID(),
-        role: "oracle",
+        role: "assistant",
         text: mockReply(q),
         ts: nowStamp(),
       },
@@ -111,14 +111,12 @@ export default function Page() {
         <div className="mx-auto w-full max-w-[1400px] px-6 pt-8">
           <div className="flex items-end justify-center gap-12 sm:gap-20 border-b border-hair-strong">
             <BigTab
-              active={tab === "console"}
-              code="01"
-              label="Console"
-              onClick={() => setTab("console")}
+              active={tab === "chat"}
+              label="Chat"
+              onClick={() => setTab("chat")}
             />
             <BigTab
               active={tab === "filing"}
-              code="02"
               label="Filing"
               onClick={() => setTab("filing")}
             />
@@ -127,8 +125,8 @@ export default function Page() {
       </header>
 
       <main className="flex-1 mx-auto w-full max-w-[1400px] px-6 pt-10 pb-12">
-        {tab === "console" ? (
-          <Console
+        {tab === "chat" ? (
+          <Chat
             messages={messages}
             thinking={thinking}
             input={input}
@@ -150,12 +148,10 @@ export default function Page() {
 
 function BigTab({
   active,
-  code,
   label,
   onClick,
 }: {
   active: boolean;
-  code: string;
   label: string;
   onClick: () => void;
 }) {
@@ -166,13 +162,6 @@ function BigTab({
         active ? "text-fg" : "text-faint hover:text-mute"
       }`}
     >
-      <div
-        className={`font-mono text-[10.5px] uppercase tracking-[0.32em] mb-2.5 transition-colors text-center ${
-          active ? "text-accent" : "text-faint group-hover:text-mute"
-        }`}
-      >
-        ◇ {code}
-      </div>
       <div className="font-display text-[32px] sm:text-[42px] lg:text-[54px] leading-[0.95] uppercase tracking-[0.01em] text-center">
         {label}
       </div>
@@ -186,7 +175,7 @@ function BigTab({
   );
 }
 
-function Console({
+function Chat({
   messages,
   thinking,
   input,
@@ -206,6 +195,7 @@ function Console({
   scrollRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const empty = messages.length === 0 && !thinking;
+  const disabled = !input.trim() || thinking;
   return (
     <div className="relative border border-hair bg-panel/60 backdrop-blur-[1px] corners">
       <span className="corner-b" />
@@ -234,15 +224,28 @@ function Console({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKey}
             rows={1}
-            placeholder="Ask the oracle…"
+            placeholder="Ask a question…"
             className="flex-1 resize-none bg-transparent outline-none text-[14px] leading-6 text-fg placeholder:text-mute font-body tracking-tight self-center"
           />
           <button
             onClick={() => send(input)}
-            disabled={!input.trim() || thinking}
-            className="font-mono text-[10.5px] uppercase tracking-[0.22em] px-3 py-1.5 border border-hair-strong text-fg hover:text-accent hover:border-accent disabled:text-faint disabled:hover:text-faint disabled:hover:border-hair-strong disabled:cursor-not-allowed transition-colors"
+            disabled={disabled}
+            aria-label="Send message"
+            className="grid place-items-center w-8 h-8 bg-white text-black hover:bg-white/90 disabled:bg-white/20 disabled:text-white/40 disabled:cursor-not-allowed transition-colors"
           >
-            {thinking ? "··· Trans" : "Transmit ↵"}
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="square"
+              strokeLinejoin="miter"
+              aria-hidden="true"
+            >
+              <path d="M12 19V5M5 12l7-7 7 7" />
+            </svg>
           </button>
         </div>
       </div>
@@ -297,7 +300,7 @@ function EmptyState({ onPick }: { onPick: (s: string) => void }) {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center px-4">
       <div className="font-mono text-[10.5px] uppercase tracking-[0.28em] text-mute mb-7">
-        ◇ AWAITING TRANSMISSION
+        ◇ AWAITING QUERY
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-[640px]">

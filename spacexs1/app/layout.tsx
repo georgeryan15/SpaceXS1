@@ -19,9 +19,9 @@ const mono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SPX // S-1 ORACLE",
+  title: "SPX // S-1",
   description:
-    "Interactive console for interrogating the SpaceX S-1 registration statement.",
+    "Interactive chat for interrogating the SpaceX S-1 registration statement.",
 };
 
 export default function RootLayout({
