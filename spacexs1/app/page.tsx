@@ -25,7 +25,7 @@ function nowStamp() {
 }
 
 export default function Page() {
-  const [tab, setTab] = useState<Tab>("chat");
+  const [tab] = useState<Tab>("chat");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
@@ -98,68 +98,40 @@ export default function Page() {
 
   return (
     <div className="flex flex-1 flex-col min-h-screen bg-bg">
-      <header>
-        <div className="mx-auto w-full max-w-[1400px] px-6 pt-8">
-          <div className="flex items-end justify-center gap-12 sm:gap-20 border-b border-hair-strong">
-            <BigTab
-              active={tab === "chat"}
-              label="Chat"
-              onClick={() => setTab("chat")}
-            />
-          </div>
+      <header className="mx-auto w-full max-w-[1400px] px-6 pt-8">
+        <div className="text-center">
+          <h1 className="font-display uppercase tracking-[0.02em] text-[36px] sm:text-[48px] lg:text-[60px] leading-[0.95] text-fg">
+            SpaceX has filed for IPO
+          </h1>
+          <p className="mt-2 text-[13px] sm:text-[14px] leading-snug text-mute font-body tracking-tight max-w-[640px] mx-auto">
+            Ask questions about the S-1 prospectus and get grounded answers pulled straight from the filing.
+          </p>
         </div>
       </header>
 
-      <main className="flex-1 mx-auto w-full max-w-[1400px] px-6 pt-10 pb-12">
-        {tab === "chat" ? (
-          <Chat
-            messages={messages}
-            thinking={thinking}
-            input={input}
-            setInput={setInput}
-            send={send}
-            onKey={onKey}
-            inputRef={inputRef}
-            scrollRef={scrollRef}
-          />
-        ) : (
-          <Filing />
-        )}
+      <main className="flex-1 flex items-center justify-center mx-auto w-full max-w-[1400px] px-6 py-10">
+        <div className="w-full">
+          {tab === "chat" ? (
+            <Chat
+              messages={messages}
+              thinking={thinking}
+              input={input}
+              setInput={setInput}
+              send={send}
+              onKey={onKey}
+              inputRef={inputRef}
+              scrollRef={scrollRef}
+            />
+          ) : (
+            <Filing />
+          )}
+        </div>
       </main>
     </div>
   );
 }
 
 /* ---------------- Sub-components ---------------- */
-
-function BigTab({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`group relative -mb-px pb-5 pt-1 text-left transition-colors ${
-        active ? "text-fg" : "text-faint hover:text-mute"
-      }`}
-    >
-      <div className="font-display text-[32px] sm:text-[42px] lg:text-[54px] leading-[0.95] uppercase tracking-[0.01em] text-center">
-        {label}
-      </div>
-      {active && (
-        <>
-          <span className="absolute left-0 right-0 -bottom-px h-[2px] bg-accent" />
-          <span className="absolute -bottom-[5px] left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 bg-accent" />
-        </>
-      )}
-    </button>
-  );
-}
 
 function Chat({
   messages,
@@ -353,7 +325,7 @@ function Thinking() {
         <span /> <span /> <span />
       </span>
       <span className="ml-3 font-mono text-[10.5px] uppercase tracking-[0.22em] text-mute">
-        parsing prospectus
+        Searching the IPO Filing
       </span>
     </div>
   );
