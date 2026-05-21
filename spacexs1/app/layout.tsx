@@ -35,6 +35,9 @@ export default function RootLayout({
       className={`dark ${display.variable} ${body.variable} ${mono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-body tracking-tight bg-bg text-fg">
+        <div className="w-full bg-green-600 text-white text-center text-xs font-medium py-1 px-4">
+          We&apos;ve fixed a rate limit error appearing on some chat messages
+        </div>
         {children}
       </body>
     </html>
