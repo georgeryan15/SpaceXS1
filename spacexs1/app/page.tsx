@@ -127,6 +127,17 @@ export default function Page() {
           )}
         </div>
       </main>
+
+      <footer className="mx-auto w-full max-w-[1400px] px-6 pb-6 text-center">
+        <a
+          href="https://x.com/atGeorgeR"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-accent hover:text-accent/80 transition-colors"
+        >
+          Made by George Ryan
+        </a>
+      </footer>
     </div>
   );
 }
